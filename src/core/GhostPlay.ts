@@ -11,6 +11,25 @@ import { BlueprintChecker } from './BlueprintChecker.js';
 import { AssetChecker } from './AssetChecker.js';
 import * as fs from 'fs';
 import * as path from 'path';
+import { execSync } from 'child_process';
+
+function detectChromiumPath(): string | undefined {
+  if (process.env.GHOSTPLAY_CHROMIUM_PATH) return process.env.GHOSTPLAY_CHROMIUM_PATH;
+  const candidates = [
+    '/run/current-system/sw/bin/chromium',
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/google-chrome',
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  try {
+    const found = execSync('which chromium 2>/dev/null || which chromium-browser 2>/dev/null || which google-chrome 2>/dev/null', { encoding: 'utf-8' }).trim().split('\n')[0];
+    if (found && fs.existsSync(found)) return found;
+  } catch {}
+  return undefined;
+}
 
 export interface GhostPlayRunConfig extends GhostPlayConfig {
   jsonMode?: boolean;
@@ -34,8 +53,14 @@ export class GhostPlay {
       fs.mkdirSync(this.screenshotsDir, { recursive: true });
     }
 
+    const executablePath = detectChromiumPath();
+    if (executablePath) {
+      this.reporter.info(`Menggunakan Chromium sistem: ${executablePath}`);
+    }
+
     this.browser = await chromium.launch({
       headless: this.config.headed !== true,
+      executablePath,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
     });
 

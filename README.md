@@ -6,6 +6,34 @@ Dirancang supaya agent bisa **testing game sendiri** dan **debug sendiri**, buka
 
 ---
 
+## Install & Setup
+
+```bash
+git clone https://github.com/SPHERE-HQ/GhostPlay.git
+cd GhostPlay
+npm install
+```
+
+**Chromium otomatis terdeteksi** — GhostPlay akan memakai Chromium yang sudah ada di sistem (Nix, PATH, dll). Tidak perlu `playwright install` manual.
+
+Jika Chromium tidak terdeteksi otomatis, jalankan:
+
+```bash
+npx playwright install chromium
+```
+
+Atau override manual via env var:
+
+```bash
+GHOSTPLAY_CHROMIUM_PATH=/usr/bin/chromium npx tsx src/cli.ts run ...
+```
+
+### Setup di Replit (tanpa install apapun)
+
+Chromium sudah terpasang via Nix — langsung jalankan saja. GhostPlay mendeteksi path-nya otomatis.
+
+---
+
 ## Cara Kerja
 
 ```
@@ -28,31 +56,43 @@ Agent tulis scenario → GhostPlay buka game di browser headless
 
 ---
 
-## Install
-
-```bash
-npm install
-npx playwright install chromium
-```
-
----
-
 ## Jalankan Test
 
 ```bash
-# Test Forge Frenzy (game harus jalan di localhost:5173 dulu)
-npm run run:ff
-
-# Mode watch — auto-run tiap kali file berubah (integrasi Replit workflow)
-npm run watch:ff
+# Game harus sudah berjalan di localhost:5173 dulu
 
 # Pakai scenario JSON (agent generate tanpa TypeScript)
 npx tsx src/cli.ts run scenarios/example.json --url http://localhost:5173
 
-# Custom
-npx tsx src/cli.ts run scenarios/forge-frenzy.ts --url http://localhost:5173 --headed
-npx tsx src/cli.ts watch scenarios/forge-frenzy.ts --watch-dir src --watch-dir public
+# Pakai wrapper script
+bash ghostplay.sh run scenarios/example.json --url http://localhost:5173
+
+# Output JSON (machine-readable, untuk agent baca hasil)
+npx tsx src/cli.ts run scenarios/example.json --url http://localhost:5173 --json
+
+# Watch mode — auto-run tiap kali file berubah
+npx tsx src/cli.ts watch scenarios/example.ts --watch-dir src --watch-dir public
+
+# Headed (tampilkan browser)
+npx tsx src/cli.ts run scenarios/example.ts --url http://localhost:5173 --headed
+
+# Tanpa screenshot (lebih cepat untuk CI/agent)
+npx tsx src/cli.ts run scenarios/example.json --url http://localhost:5173 --no-screenshots
 ```
+
+---
+
+## Deteksi Chromium Otomatis
+
+GhostPlay secara otomatis mendeteksi Chromium yang tersedia di sistem dengan urutan prioritas berikut:
+
+1. **`GHOSTPLAY_CHROMIUM_PATH`** — env var override manual
+2. **`/run/current-system/sw/bin/chromium`** — NixOS system Chromium
+3. **`/usr/bin/chromium`**, `/usr/bin/chromium-browser`, `/usr/bin/google-chrome`
+4. **`which chromium`** — pencarian di PATH
+5. **Playwright's downloaded Chromium** — fallback jika semua gagal
+
+Tidak perlu konfigurasi apapun di Replit atau NixOS — langsung jalan.
 
 ---
 
@@ -88,48 +128,34 @@ Ini inti dari "agent buat game tapi asset salah/hilang". GhostPlay tidak hanya c
   3D Model
   ✓ Model: Karakter BRIX (file ada)
   ✓ Model BRIX: mesh "Brix_Body"
-  ✓ Model BRIX: mesh "Brix_Head"
   ✗ Model BRIX: mesh "Brix_Gun"
     ↳ Mesh "Brix_Gun" tidak ada di file. Mesh tersedia: [Brix_Body, Brix_Head, Weapon, ...]
       — cek nama mesh di Blender/editor, mungkin namanya "Weapon" bukan "Brix_Gun"
-  ✓ Model BRIX: animasi "idle"
   ✗ Model BRIX: animasi "death"
     ↳ Animasi "death" tidak ada. Animasi tersedia: [idle, run, attack]
-      — export animasi death dari Blender, atau rename yang sudah ada
-  ✗ Model: Map Forge Frenzy (file ada)
-    ↳ "public/models/map_forge.glb" tidak ditemukan — file model belum di-export atau path salah
 
   Scene Runtime (Babylon.js)
   ✓ Scene: "Karakter BRIX" ter-load
   ✗ Scene: "Map Forge Frenzy" ter-load
     ↳ Asset "Map Forge Frenzy" TIDAK ter-load di scene. Pattern: "ground".
-      Mesh di scene: [skybox, Brix_Body, Brix_Head, ...]
-      — pastikan SceneLoader.ImportMesh dipanggil dengan path yang benar
 
   Tekstur
   ✓ Tekstur: BRIX (diffuse) — 1024x1024px (512.0 KB)
   ✗ Tekstur: Tekstur tanah map
     ↳ "public/textures/map_ground.jpg" tidak ditemukan
 
-  Audio
-  ✓ Audio: BGM Forge Frenzy (245.3 KB)
-  ✗ Audio: SFX reload
-    ↳ "public/audio/sfx_reload.mp3" tidak ditemukan
-
 ──────────────────────────────────────────────────────────
-  ✓ 8 sesuai  ✗ 4 tidak sesuai  ⚠ 0 peringatan
+  ✓ 8 sesuai  ✗ 4 tidak sesuai
   ASSET TIDAK LENGKAP — 4 item perlu diperbaiki
 ──────────────────────────────────────────────────────────
 ```
-
-Agent baca output → langsung tahu: mesh mana yang namanya beda, animasi mana yang belum di-export, file mana yang belum ada → perbaiki → run lagi.
 
 ---
 
 ### 2. `check-blueprint` — Validasi UI & Engine vs Spec
 
 ```typescript
-{ type: 'check-blueprint', blueprint: 'blueprints/forge-frenzy.blueprint.json' }
+{ type: 'check-blueprint', blueprint: 'blueprints/example.blueprint.json' }
 ```
 
 Validasi elemen UI, karakter, map landmark, Babylon.js globals, dan performa terhadap blueprint spec.
@@ -159,7 +185,7 @@ Baca langsung dari `BABYLON.Engine` dan `scene`: FPS, mesh count, draw calls, ac
 ### 4. Watch Mode — Integrasi Replit Workflow
 
 ```bash
-ghostplay watch scenarios/forge-frenzy.ts --watch-dir src --watch-dir public
+ghostplay watch scenarios/example.ts --watch-dir src --watch-dir public
 ```
 
 Pantau direktori secara real-time. Setiap file berubah → test otomatis jalan ulang. Pasang sebagai workflow terpisah di Replit.
@@ -256,7 +282,7 @@ Pantau direktori secara real-time. Setiap file berubah → test otomatis jalan u
 GhostPlay/
 ├── src/
 │   ├── core/
-│   │   ├── GhostPlay.ts         # Orkestrasi utama
+│   │   ├── GhostPlay.ts         # Orkestrasi utama + auto-detect Chromium
 │   │   ├── AssetChecker.ts      # Validasi asset file + GLB/GLTF parser
 │   │   ├── BabylonChecker.ts    # Inspector Babylon.js engine & WebGL
 │   │   ├── BlueprintChecker.ts  # Validasi game vs blueprint spec
@@ -270,10 +296,11 @@ GhostPlay/
 │   ├── index.ts                 # Public exports
 │   └── types.ts                 # Semua type definitions
 ├── scenarios/
-│   ├── forge-frenzy.ts          # Scenario lengkap Forge Frenzy
+│   ├── example.ts               # Contoh scenario TypeScript lengkap
 │   └── example.json             # Contoh scenario JSON
-└── blueprints/
-    └── forge-frenzy.blueprint.json  # Blueprint + asset spec Forge Frenzy
+├── blueprints/
+│   └── example.blueprint.json   # Contoh blueprint + asset spec
+└── ghostplay.sh                 # Wrapper script siap pakai
 ```
 
 ---
@@ -281,6 +308,30 @@ GhostPlay/
 ## Kompatibel dengan Engine Apapun
 
 GhostPlay tidak terikat ke Babylon.js, Three.js, atau engine tertentu. `check-canvas-babylon` hanyalah step opsional untuk project Babylon.js. `check-assets` bekerja untuk format GLB/GLTF/OBJ apapun. Selama game jalan di browser, GhostPlay bisa test.
+
+---
+
+## CLI Options Lengkap
+
+```
+ghostplay run   <scenario>  [options]   Run test sekali
+ghostplay watch <scenario>  [options]   Auto-run saat file berubah
+
+Options:
+  --url <url>            URL game yang ditest
+  --headed               Tampilkan browser (default: headless)
+  --width <px>           Lebar viewport  (default: 390)
+  --height <px>          Tinggi viewport (default: 844)
+  --screenshots <dir>    Folder output screenshot (default: ./ghostplay-screenshots)
+  --timeout <ms>         Timeout load halaman (default: 30000)
+  --json                 Output JSON (machine-readable, untuk agent)
+  --no-screenshots       Skip screenshot (lebih cepat untuk CI/agent)
+
+Watch options:
+  --watch-dir <dir>      Direktori yang dipantau (bisa diulang)
+  --debounce <ms>        Debounce delay setelah perubahan (default: 800)
+  --no-clear             Jangan clear terminal saat re-run
+```
 
 ---
 

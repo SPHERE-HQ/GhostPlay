@@ -1,55 +1,26 @@
 {
-  "name": "ghostplay",
+  "name": "@workspace/ghostplay",
   "version": "0.2.0",
-  "description": "Browser game test runner designed for AI agents — simulate input, validate UI/HUD, monitor JS errors & FPS, inspect Babylon.js, validate blueprints and 3D asset files",
-  "author": "SPHERE-HQ",
-  "license": "MIT",
+  "description": "Browser game test runner untuk AI agent — terintegrasi langsung di workspace, Chromium sudah terpasang",
+  "private": true,
   "type": "module",
-  "keywords": [
-    "game-testing", "ai-agent", "playwright", "babylon.js", "webgl",
-    "test-runner", "headless", "game-dev", "blueprint", "asset-validation"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/SPHERE-HQ/GhostPlay.git"
-  },
-  "homepage": "https://github.com/SPHERE-HQ/GhostPlay#readme",
-  "bugs": {
-    "url": "https://github.com/SPHERE-HQ/GhostPlay/issues"
-  },
   "bin": {
-    "ghostplay": "./dist/cli.js"
+    "ghostplay": "./src/cli.ts"
   },
-  "main":    "./dist/index.js",
-  "types":   "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types":  "./dist/index.d.ts"
-    }
-  },
-  "files": [
-    "dist/",
-    "blueprints/",
-    "scenarios/",
-    "README.md",
-    "LICENSE"
-  ],
   "scripts": {
-    "build":            "tsc",
-    "prepublishOnly":   "npm run build",
-    "example:run":      "tsx src/cli.ts run scenarios/example.ts",
-    "example:run:json": "tsx src/cli.ts run scenarios/example.ts --json",
-    "example:watch":    "tsx src/cli.ts watch scenarios/example.ts --watch-dir src --watch-dir public",
-    "install-browsers": "playwright install chromium"
+    "typecheck": "tsc --noEmit",
+    "install-browsers": "playwright install chromium",
+    "run:scenario": "tsx src/cli.ts run",
+    "watch:scenario": "tsx src/cli.ts watch",
+    "example": "tsx src/cli.ts run scenarios/example.json"
   },
   "dependencies": {
     "playwright": "^1.44.0"
   },
   "devDependencies": {
-    "typescript":  "^5.4.0",
-    "tsx":         "^4.11.0",
-    "@types/node": "^20.0.0"
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "~5.9.2"
   },
   "engines": {
     "node": ">=18.0.0"
