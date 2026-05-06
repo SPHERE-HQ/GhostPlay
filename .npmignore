@@ -1,0 +1,18 @@
+# Source — hanya dist yang di-publish
+src/
+tsconfig.json
+*.tsbuildinfo
+
+# Dev & test
+node_modules/
+ghostplay-screenshots/
+*.log
+.env
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/

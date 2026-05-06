@@ -1,17 +1,45 @@
 {
   "name": "ghostplay",
   "version": "0.2.0",
-  "description": "Game test runner untuk AI agent — simulate input, cek UI/HUD, monitor error & FPS, validasi blueprint & asset",
+  "description": "Browser game test runner designed for AI agents — simulate input, validate UI/HUD, monitor JS errors & FPS, inspect Babylon.js, validate blueprints and 3D asset files",
   "author": "SPHERE-HQ",
   "license": "MIT",
   "type": "module",
+  "keywords": [
+    "game-testing", "ai-agent", "playwright", "babylon.js", "webgl",
+    "test-runner", "headless", "game-dev", "blueprint", "asset-validation"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SPHERE-HQ/GhostPlay.git"
+  },
+  "homepage": "https://github.com/SPHERE-HQ/GhostPlay#readme",
+  "bugs": {
+    "url": "https://github.com/SPHERE-HQ/GhostPlay/issues"
+  },
   "bin": {
     "ghostplay": "./dist/cli.js"
   },
+  "main":    "./dist/index.js",
+  "types":   "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types":  "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist/",
+    "blueprints/",
+    "scenarios/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build":            "tsc",
-    "dev":              "tsx src/cli.ts",
+    "prepublishOnly":   "npm run build",
     "example:run":      "tsx src/cli.ts run scenarios/example.ts",
+    "example:run:json": "tsx src/cli.ts run scenarios/example.ts --json",
     "example:watch":    "tsx src/cli.ts watch scenarios/example.ts --watch-dir src --watch-dir public",
     "install-browsers": "playwright install chromium"
   },
@@ -22,5 +50,8 @@
     "typescript":  "^5.4.0",
     "tsx":         "^4.11.0",
     "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
