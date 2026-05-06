@@ -1,0 +1,46 @@
+{
+  "name": "Contoh Scenario JSON — Basic Game Test",
+  "description": "Scenario dalam format JSON — bisa di-generate agent tanpa nulis TypeScript",
+  "url": "http://localhost:5173",
+  "stopOnFail": false,
+  "steps": [
+    { "type": "log",          "message": "=== FASE 1: Loading ===" },
+    { "type": "screenshot",   "label": "01_initial" },
+    { "type": "wait-for",     "selector": "#main-menu", "timeout": 8000, "label": "Menu utama muncul" },
+    { "type": "screenshot",   "label": "02_main_menu" },
+
+    { "type": "log",          "message": "=== FASE 2: Mulai Game ===" },
+    { "type": "tap-text",     "text": "MAIN SEKARANG",  "label": "Tap tombol mulai" },
+    { "type": "wait",         "ms": 3000,               "label": "Tunggu game load" },
+
+    { "type": "log",          "message": "=== FASE 3: Cek UI ===" },
+    { "type": "check-element","selector": "canvas",     "label": "Canvas ada" },
+    { "type": "check-element","selector": "#hud-hp",    "label": "HP bar ada" },
+    { "type": "check-element","selector": "#hud-ammo",  "label": "Ammo ada" },
+
+    { "type": "log",          "message": "=== FASE 4: Babylon.js ===" },
+    { "type": "check-canvas-babylon",
+      "label": "Babylon.js engine berjalan",
+      "checks": {
+        "requireEngine": true,
+        "requireScene": true,
+        "requireActiveCamera": true,
+        "minFps": 30,
+        "minMeshCount": 5,
+        "customObjects": ["game", "playerController"]
+      }
+    },
+
+    { "type": "log",          "message": "=== FASE 5: Kontrol ===" },
+    { "type": "swipe",        "x1": 80,  "y1": 600, "x2": 140, "y2": 600, "duration": 400, "label": "Swipe kanan" },
+    { "type": "swipe",        "x1": 80,  "y1": 600, "x2": 80,  "y2": 540, "duration": 400, "label": "Swipe maju" },
+    { "type": "wait",         "ms": 1000 },
+
+    { "type": "log",          "message": "=== FASE 6: Performance ===" },
+    { "type": "check-fps",    "min": 30, "duration": 2000, "label": "FPS minimal 30" },
+
+    { "type": "log",          "message": "=== FASE 7: Error Check ===" },
+    { "type": "check-no-errors", "label": "Tidak ada JS error" },
+    { "type": "screenshot",   "label": "08_final" }
+  ]
+}

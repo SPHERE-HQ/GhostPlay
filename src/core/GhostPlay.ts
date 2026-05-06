@@ -1,11 +1,13 @@
 // src/core/GhostPlay.ts
 import { chromium, Browser, Page } from 'playwright';
-import { GhostPlayConfig, Scenario, Step, StepResult, TestReport, CapturedError } from '../types';
-import { Reporter } from './Reporter';
-import { InputSimulator } from './InputSimulator';
-import { DOMChecker } from './DOMChecker';
-import { ErrorCollector } from './ErrorCollector';
-import { PerfMonitor } from './PerfMonitor';
+import { GhostPlayConfig, Scenario, Step, StepResult, TestReport, CapturedError } from '../types.js';
+import { Reporter } from './Reporter.js';
+import { InputSimulator } from './InputSimulator.js';
+import { DOMChecker } from './DOMChecker.js';
+import { ErrorCollector } from './ErrorCollector.js';
+import { PerfMonitor } from './PerfMonitor.js';
+import { BabylonChecker } from './BabylonChecker.js';
+import { BlueprintChecker } from './BlueprintChecker.js';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -45,6 +47,8 @@ export class GhostPlay {
     const perfMonitor    = new PerfMonitor(this.page);
     const input          = new InputSimulator(this.page, this.reporter);
     const dom            = new DOMChecker(this.page, this.reporter);
+    const babylon        = new BabylonChecker(this.page, this.reporter);
+    const blueprint      = new BlueprintChecker(this.page, this.reporter);
 
     await errorCollector.inject();
     await perfMonitor.inject();
@@ -59,10 +63,10 @@ export class GhostPlay {
     const results: StepResult[] = [];
 
     for (const step of scenario.steps) {
-      const result = await this.executeStep(step, input, dom, perfMonitor, errorCollector);
+      const result = await this.executeStep(step, input, dom, perfMonitor, errorCollector, babylon, blueprint);
       results.push(result);
       this.reporter.step(result);
-      if (result.status === 'fail' && scenario.stopOnFail !== false) {
+      if (result.status === 'fail' && scenario.stopOnFail === true) {
         this.reporter.warn('Berhenti karena step gagal (stopOnFail=true)');
         break;
       }
@@ -80,6 +84,8 @@ export class GhostPlay {
     dom: DOMChecker,
     perf: PerfMonitor,
     errors: ErrorCollector,
+    babylon: BabylonChecker,
+    blueprint: BlueprintChecker,
   ): Promise<StepResult> {
     const t0 = Date.now();
     const make = (status: StepResult['status'], message: string, extra?: Partial<StepResult>): StepResult => ({
@@ -164,6 +170,22 @@ export class GhostPlay {
           if (errs.length === 0) return make('ok', 'Tidak ada JS error');
           const summary = errs.map(e => `${e.message} (${e.source}:${e.line})`).join('\n');
           return make('fail', `Ditemukan ${errs.length} JS error`, { error: summary });
+        }
+
+        case 'check-canvas-babylon': {
+          const checks = step.checks ?? {};
+          const result = await babylon.check(checks);
+          const webglResult = await babylon.isWebGLRendering();
+          const status = result.ok && webglResult.ok ? 'ok' : result.ok ? 'warn' : 'fail';
+          const message = `${result.message} | WebGL: ${webglResult.message}`;
+          return make(status, message, { detail: result.report });
+        }
+
+        case 'check-blueprint': {
+          const report = await blueprint.validate(step.blueprint);
+          const status = report.failed > 0 ? 'fail' : report.warned > 0 ? 'warn' : 'ok';
+          const message = `Blueprint "${report.blueprintName}": ${report.passed} sesuai, ${report.failed} gagal, ${report.warned} peringatan`;
+          return make(status, message, { detail: report });
         }
 
         case 'screenshot': {

@@ -1,0 +1,55 @@
+{
+  "_comment": "Blueprint ini mendefinisikan SEMUA yang harus ada di game Forge Frenzy sesuai desain asli.",
+  "_usage": "Gunakan step { type: 'check-blueprint', blueprint: 'blueprints/forge-frenzy.blueprint.json' } di scenario.",
+
+  "name": "Forge Frenzy — Full Blueprint",
+  "version": "1.0",
+  "description": "Spec lengkap: UI, karakter, map, engine, dan performa",
+
+  "ui": {
+    "elements": [
+      { "selector": "#boot-overlay",    "label": "Boot screen overlay",     "required": true },
+      { "selector": "#game-hud",        "label": "HUD container utama",     "required": true },
+      { "selector": "#hud-hp",          "label": "HP bar",                  "required": true },
+      { "selector": "#hud-shield",      "label": "Shield bar",              "required": true },
+      { "selector": "#hud-ammo",        "label": "Ammo display",            "required": true },
+      { "selector": "#hud-kills",       "label": "Kill counter",            "required": true },
+      { "selector": "#hud-ult",         "label": "Ultimate bar",            "required": true },
+      { "selector": "#minimap-canvas",  "label": "Minimap",                 "required": true },
+      { "selector": "#score",           "label": "Score display",           "required": false },
+      { "selector": "#timer",           "label": "Timer countdown",         "required": false }
+    ]
+  },
+
+  "characters": [
+    {
+      "name": "BRIX",
+      "selector": ".hero-brix",
+      "hudHp":    "#hud-hp-brix",
+      "hudAmmo":  "#hud-ammo-brix"
+    }
+  ],
+
+  "map": {
+    "width": 2048,
+    "height": 2048,
+    "landmarks": [
+      { "id": "spawn-point",  "label": "Spawn Point",    "selector": "#map-spawn" },
+      { "id": "forge-zone",   "label": "Forge Zone",     "selector": "#map-forge" },
+      { "id": "loot-crate",   "label": "Loot Crate",     "selector": ".loot-crate" }
+    ]
+  },
+
+  "babylon": {
+    "checkEngine":    true,
+    "checkScene":     true,
+    "minMeshCount":   10,
+    "minDrawCalls":   1,
+    "requireGlobals": ["BABYLON", "engine", "scene", "game"]
+  },
+
+  "performance": {
+    "minFps":    30,
+    "maxLoadMs": 5000
+  }
+}
