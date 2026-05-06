@@ -1,0 +1,108 @@
+{
+  "_comment": "Contoh blueprint — salin dan sesuaikan dengan game kamu.",
+  "_usage": "Gunakan step { type: 'check-blueprint', blueprint: 'blueprints/example.blueprint.json' } di scenario.",
+
+  "name": "My Game — Full Blueprint",
+  "version": "1.0",
+  "description": "Ganti isi file ini sesuai spec game kamu",
+
+  "ui": {
+    "elements": [
+      { "selector": "#boot-overlay",   "label": "Boot screen",      "required": true },
+      { "selector": "#main-menu",      "label": "Main menu",        "required": true },
+      { "selector": "#game-hud",       "label": "HUD container",    "required": true },
+      { "selector": "#hud-hp",         "label": "HP bar",           "required": true },
+      { "selector": "#hud-ammo",       "label": "Ammo display",     "required": true },
+      { "selector": "#minimap-canvas", "label": "Minimap",          "required": true },
+      { "selector": "#score",          "label": "Score display",    "required": false }
+    ]
+  },
+
+  "characters": [
+    {
+      "name": "Hero",
+      "selector": ".hero-character",
+      "hudHp":    "#hud-hp-hero",
+      "hudAmmo":  "#hud-ammo-hero"
+    }
+  ],
+
+  "map": {
+    "width": 2048,
+    "height": 2048,
+    "landmarks": [
+      { "id": "spawn",  "label": "Spawn Point", "selector": "#map-spawn" },
+      { "id": "zone-a", "label": "Zone A",      "selector": "#zone-a" }
+    ]
+  },
+
+  "babylon": {
+    "checkEngine":    true,
+    "checkScene":     true,
+    "minMeshCount":   5,
+    "requireGlobals": ["BABYLON", "engine", "scene", "game"]
+  },
+
+  "performance": {
+    "minFps":    30,
+    "maxLoadMs": 5000
+  },
+
+  "assets": {
+    "rootDir": ".",
+
+    "models": [
+      {
+        "file":               "public/models/hero.glb",
+        "label":              "Hero Character",
+        "expectedMeshes":     ["Hero_Body", "Hero_Head"],
+        "expectedAnimations": ["idle", "run", "attack", "death"],
+        "requireRig":         true,
+        "minPolyCount":       5000,
+        "inScene":            true,
+        "sceneNamePattern":   "hero"
+      },
+      {
+        "file":               "public/models/map.glb",
+        "label":              "Game Map",
+        "expectedMeshes":     ["Ground", "Walls"],
+        "minPolyCount":       10000,
+        "inScene":            true,
+        "sceneNamePattern":   "ground"
+      },
+      {
+        "file":               "public/models/item.glb",
+        "label":              "Pickup Item",
+        "expectedMeshes":     ["Item_Body"],
+        "expectedAnimations": ["idle", "pickup"],
+        "inScene":            true,
+        "sceneNamePattern":   "item"
+      }
+    ],
+
+    "textures": [
+      {
+        "file":      "public/textures/hero_diffuse.png",
+        "label":     "Hero texture (diffuse)",
+        "minWidth":  512,
+        "minHeight": 512
+      },
+      {
+        "file":  "public/textures/map_ground.jpg",
+        "label": "Ground texture",
+        "minWidth": 1024
+      },
+      {
+        "file":  "public/textures/ui_hud.png",
+        "label": "HUD sprite sheet"
+      }
+    ],
+
+    "audio": [
+      { "file": "public/audio/bgm.mp3",          "label": "Background music" },
+      { "file": "public/audio/sfx_shoot.mp3",    "label": "Shoot SFX" },
+      { "file": "public/audio/sfx_footstep.mp3", "label": "Footstep SFX" },
+      { "file": "public/audio/sfx_death.mp3",    "label": "Death SFX" }
+    ]
+  }
+}

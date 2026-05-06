@@ -1,7 +1,7 @@
 {
   "name": "ghostplay",
   "version": "0.2.0",
-  "description": "Game test runner untuk AI agent — simulate input, cek UI/HUD, monitor error & FPS, validasi blueprint, inspect Babylon.js",
+  "description": "Game test runner untuk AI agent — simulate input, cek UI/HUD, monitor error & FPS, validasi blueprint & asset",
   "author": "SPHERE-HQ",
   "license": "MIT",
   "type": "module",
@@ -11,8 +11,8 @@
   "scripts": {
     "build":            "tsc",
     "dev":              "tsx src/cli.ts",
-    "run:ff":           "tsx src/cli.ts run scenarios/forge-frenzy.ts",
-    "watch:ff":         "tsx src/cli.ts watch scenarios/forge-frenzy.ts --watch-dir src --watch-dir public",
+    "example:run":      "tsx src/cli.ts run scenarios/example.ts",
+    "example:watch":    "tsx src/cli.ts watch scenarios/example.ts --watch-dir src --watch-dir public",
     "install-browsers": "playwright install chromium"
   },
   "dependencies": {
