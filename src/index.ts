@@ -7,6 +7,7 @@ export { ErrorCollector }    from './core/ErrorCollector.js';
 export { PerfMonitor }       from './core/PerfMonitor.js';
 export { BabylonChecker }    from './core/BabylonChecker.js';
 export { BlueprintChecker }  from './core/BlueprintChecker.js';
+export { AssetChecker }      from './core/AssetChecker.js';
 export { FileWatcher }       from './core/FileWatcher.js';
 
 export type {
@@ -25,6 +26,12 @@ export type {
   BlueprintRequirement,
   BabylonChecks,
   BabylonReport,
+  AssetsSpec,
+  AssetModelSpec,
+  AssetTextureSpec,
+  AssetAudioSpec,
+  AssetRequirement,
+  AssetCheckReport,
 } from './types.js';
 
 // Helper: definisikan scenario dengan type-safety penuh
@@ -35,4 +42,9 @@ export function defineScenario(scenario: import('./types.js').Scenario): import(
 // Helper: definisikan blueprint dengan type-safety penuh
 export function defineBlueprint(blueprint: import('./types.js').Blueprint): import('./types.js').Blueprint {
   return blueprint;
+}
+
+// Helper: definisikan asset spec dengan type-safety penuh
+export function defineAssets(spec: import('./types.js').AssetsSpec): import('./types.js').AssetsSpec {
+  return spec;
 }

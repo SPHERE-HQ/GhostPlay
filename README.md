@@ -1,6 +1,6 @@
 # GhostPlay
 
-Test runner game untuk AI agent — simulate input, cek UI/HUD/canvas, monitor error JS & FPS, tanpa perlu manusia megang HP.
+Test runner game untuk AI agent — simulate input, cek UI/HUD/canvas, monitor error JS & FPS, validasi blueprint, inspect Babylon.js, dan verifikasi asset file 3D/tekstur/audio.
 
 Dirancang supaya agent bisa **testing game sendiri** dan **debug sendiri**, bukan menunggu user download APK lalu lapor manual.
 
@@ -9,15 +9,21 @@ Dirancang supaya agent bisa **testing game sendiri** dan **debug sendiri**, buka
 ## Cara Kerja
 
 ```
+Developer berikan:
+  ├── blueprint.json   → spec UI, karakter, map, engine, performa
+  └── asset files      → model 3D (GLB/GLTF/OBJ), tekstur (PNG/JPG), audio (MP3)
+
 Agent tulis scenario → GhostPlay buka game di browser headless
+  → Validasi asset file (ada? kontennya benar? mesh/animasi sesuai?)
   → Simulate tap/swipe/input seperti pemain sungguhan
   → Monitor error JS real-time
   → Cek elemen HUD/UI ada dan visible
-  → Ukur FPS
+  → Inspect Babylon.js engine (FPS, mesh count, draw calls, WebGL pixels)
   → Validasi game terhadap blueprint spec
-  → Inspect Babylon.js engine & scene
+  → Silang-cek asset yang ter-load di scene runtime
+  → Ukur FPS
   → Screenshot tiap fase
-  → Keluarkan log yang agent bisa baca & langsung perbaiki
+  → Keluarkan laporan lengkap: apa yang salah dan cara memperbaikinya
 ```
 
 ---
@@ -37,178 +43,185 @@ npx playwright install chromium
 # Test Forge Frenzy (game harus jalan di localhost:5173 dulu)
 npm run run:ff
 
-# Pakai scenario JSON (tidak perlu TypeScript)
+# Mode watch — auto-run tiap kali file berubah (integrasi Replit workflow)
+npm run watch:ff
+
+# Pakai scenario JSON (agent generate tanpa TypeScript)
 npx tsx src/cli.ts run scenarios/example.json --url http://localhost:5173
 
-# Mode watch — auto-run tiap kali file berubah (integrasi Replit workflow)
-npx tsx src/cli.ts watch scenarios/forge-frenzy.ts --watch-dir src --watch-dir public
-
-# Atau dengan opsi custom
+# Custom
 npx tsx src/cli.ts run scenarios/forge-frenzy.ts --url http://localhost:5173 --headed
+npx tsx src/cli.ts watch scenarios/forge-frenzy.ts --watch-dir src --watch-dir public
 ```
 
 ---
 
-## Fitur Utama
+## Fitur Lengkap
 
-### 1. Integrasi Replit Workflow — Auto-Run Test
+### 1. `check-assets` — Validasi Asset File + Scene Runtime
 
-Mode `watch` memantau direktori secara real-time. Setiap ada perubahan file, test langsung diulang otomatis:
+Ini inti dari "agent buat game tapi asset salah/hilang". GhostPlay tidak hanya cek blueprint UI, tapi juga baca langsung file model 3D, tekstur, dan audio — lalu silang-cek ke Babylon.js scene yang sedang berjalan.
 
-```bash
-ghostplay watch scenarios/my-game.ts --watch-dir src --watch-dir public --debounce 1000
+**Yang dicek per model GLB/GLTF:**
+- File ada dan bisa di-parse
+- Nama mesh sesuai (misal "Brix_Body", "Brix_Head")
+- Nama animasi sesuai (misal "idle", "run", "attack")
+- Nama material sesuai
+- Ada rig/skeleton (wajib untuk karakter beranimasi)
+- Polygon count minimal
+- Ter-load di Babylon.js scene runtime (nama mesh muncul di `scene.meshes`)
+- AnimationGroup aktif di scene runtime
+
+**Yang dicek per tekstur PNG/JPG:**
+- File ada
+- Dimensi minimal (misal minimal 512x512)
+
+**Yang dicek per audio:**
+- File ada dan ukurannya wajar
+
+**Contoh output:**
+
+```
+──────────────────────────────────────────────────────────
+[AssetCheck] Validasi Asset File & Scene
+
+  3D Model
+  ✓ Model: Karakter BRIX (file ada)
+  ✓ Model BRIX: mesh "Brix_Body"
+  ✓ Model BRIX: mesh "Brix_Head"
+  ✗ Model BRIX: mesh "Brix_Gun"
+    ↳ Mesh "Brix_Gun" tidak ada di file. Mesh tersedia: [Brix_Body, Brix_Head, Weapon, ...]
+      — cek nama mesh di Blender/editor, mungkin namanya "Weapon" bukan "Brix_Gun"
+  ✓ Model BRIX: animasi "idle"
+  ✗ Model BRIX: animasi "death"
+    ↳ Animasi "death" tidak ada. Animasi tersedia: [idle, run, attack]
+      — export animasi death dari Blender, atau rename yang sudah ada
+  ✗ Model: Map Forge Frenzy (file ada)
+    ↳ "public/models/map_forge.glb" tidak ditemukan — file model belum di-export atau path salah
+
+  Scene Runtime (Babylon.js)
+  ✓ Scene: "Karakter BRIX" ter-load
+  ✗ Scene: "Map Forge Frenzy" ter-load
+    ↳ Asset "Map Forge Frenzy" TIDAK ter-load di scene. Pattern: "ground".
+      Mesh di scene: [skybox, Brix_Body, Brix_Head, ...]
+      — pastikan SceneLoader.ImportMesh dipanggil dengan path yang benar
+
+  Tekstur
+  ✓ Tekstur: BRIX (diffuse) — 1024x1024px (512.0 KB)
+  ✗ Tekstur: Tekstur tanah map
+    ↳ "public/textures/map_ground.jpg" tidak ditemukan
+
+  Audio
+  ✓ Audio: BGM Forge Frenzy (245.3 KB)
+  ✗ Audio: SFX reload
+    ↳ "public/audio/sfx_reload.mp3" tidak ditemukan
+
+──────────────────────────────────────────────────────────
+  ✓ 8 sesuai  ✗ 4 tidak sesuai  ⚠ 0 peringatan
+  ASSET TIDAK LENGKAP — 4 item perlu diperbaiki
+──────────────────────────────────────────────────────────
 ```
 
-Cocok dipasang sebagai Replit workflow terpisah — agent commit perubahan, test langsung jalan sendiri.
+Agent baca output → langsung tahu: mesh mana yang namanya beda, animasi mana yang belum di-export, file mana yang belum ada → perbaiki → run lagi.
 
 ---
 
-### 2. check-canvas-babylon — Inspector Babylon.js
+### 2. `check-blueprint` — Validasi UI & Engine vs Spec
 
-Step baru untuk cek engine WebGL Babylon.js secara mendalam:
+```typescript
+{ type: 'check-blueprint', blueprint: 'blueprints/forge-frenzy.blueprint.json' }
+```
+
+Validasi elemen UI, karakter, map landmark, Babylon.js globals, dan performa terhadap blueprint spec.
+
+---
+
+### 3. `check-canvas-babylon` — Inspector Babylon.js Engine
 
 ```typescript
 {
   type: 'check-canvas-babylon',
-  label: 'Babylon.js engine sehat',
   checks: {
-    requireEngine:      true,    // BABYLON.Engine harus ada
-    requireScene:       true,    // scene harus ada
-    requireActiveCamera: true,   // harus ada kamera aktif
-    minFps:             30,      // FPS minimal
-    minMeshCount:       10,      // jumlah mesh minimal di scene
-    customObjects:      ['game', 'playerController'],  // window.* yang harus ada
+    requireEngine:       true,
+    requireScene:        true,
+    requireActiveCamera: true,
+    minFps:              30,
+    minMeshCount:        10,
+    customObjects:       ['game', 'playerController'],
   }
 }
 ```
 
-GhostPlay juga otomatis cek pixel WebGL untuk memastikan canvas tidak blank/hitam.
+Baca langsung dari `BABYLON.Engine` dan `scene`: FPS, mesh count, draw calls, activeCamera, apakah engine sudah disposed, serta verifikasi pixel WebGL (deteksi canvas blank).
 
 ---
 
-### 3. Scenario JSON — Agent Generate Tanpa TypeScript
+### 4. Watch Mode — Integrasi Replit Workflow
 
-Agent bisa generate scenario langsung sebagai JSON, tidak perlu menulis TypeScript:
+```bash
+ghostplay watch scenarios/forge-frenzy.ts --watch-dir src --watch-dir public
+```
+
+Pantau direktori secara real-time. Setiap file berubah → test otomatis jalan ulang. Pasang sebagai workflow terpisah di Replit.
+
+---
+
+### 5. JSON Scenario — Agent Generate Langsung
 
 ```json
 {
-  "name": "Nama Scenario",
-  "url": "http://localhost:5173",
+  "name": "My Game Test",
+  "url":  "http://localhost:5173",
   "steps": [
-    { "type": "wait-for",     "selector": "#main-menu", "timeout": 5000 },
-    { "type": "tap-text",     "text": "MAIN SEKARANG" },
-    { "type": "check-element","selector": "#hud-hp" },
+    { "type": "wait-for",      "selector": "#main-menu", "timeout": 5000 },
+    { "type": "check-assets",  "assets": "blueprints/my-game.blueprint.json" },
     { "type": "check-canvas-babylon", "checks": { "minFps": 30 } },
+    { "type": "check-blueprint","blueprint": "blueprints/my-game.blueprint.json" },
     { "type": "check-no-errors" }
   ]
 }
 ```
 
-Jalankan langsung:
-```bash
-ghostplay run scenarios/my-game.json
-```
-
 ---
 
-### 4. check-blueprint — Solusi Agent Buat Game Tidak Sesuai Spec
-
-Masalah: agent sering membuat game yang tidak sesuai dengan blueprint/desain asli — elemen UI salah ID, karakter hilang, minimap tidak ada, engine tidak di-expose ke window, dsb.
-
-**Solusi:** Definisikan blueprint sekali di JSON, GhostPlay validasi otomatis setiap run:
+## Format Blueprint + Asset Spec
 
 ```json
 {
-  "name": "Forge Frenzy Blueprint",
+  "name": "My Game Blueprint",
   "ui": {
     "elements": [
-      { "selector": "#hud-hp",       "label": "HP bar",  "required": true },
-      { "selector": "#minimap-canvas","label": "Minimap", "required": true }
+      { "selector": "#hud-hp",  "label": "HP bar",  "required": true },
+      { "selector": "#minimap", "label": "Minimap", "required": true }
     ]
   },
-  "characters": [
-    { "name": "BRIX", "selector": ".hero-brix", "hudHp": "#hud-hp-brix" }
-  ],
   "babylon": {
     "checkEngine": true,
     "requireGlobals": ["engine", "scene", "game"]
   },
-  "performance": { "minFps": 30 }
+  "performance": { "minFps": 30 },
+  "assets": {
+    "rootDir": ".",
+    "models": [
+      {
+        "file":               "public/models/hero.glb",
+        "label":              "Hero Character",
+        "expectedMeshes":     ["Hero_Body", "Hero_Head"],
+        "expectedAnimations": ["idle", "run", "attack"],
+        "requireRig":         true,
+        "minPolyCount":       5000,
+        "inScene":            true,
+        "sceneNamePattern":   "hero"
+      }
+    ],
+    "textures": [
+      { "file": "public/textures/hero_diffuse.png", "label": "Hero texture", "minWidth": 512 }
+    ],
+    "audio": [
+      { "file": "public/audio/bgm.mp3", "label": "Background music" }
+    ]
+  }
 }
-```
-
-Tambahkan ke scenario:
-
-```typescript
-{ type: 'check-blueprint', blueprint: 'blueprints/forge-frenzy.blueprint.json', label: 'Validasi blueprint' }
-// atau inline:
-{ type: 'check-blueprint', blueprint: { name: '...', ui: { elements: [...] } } }
-```
-
-Output langsung memberi tahu agent apa yang salah dan cara memperbaikinya:
-
-```
-──────────────────────────────────────────────────────────
-[Blueprint] Forge Frenzy — Full Blueprint
-
-  UI Elements
-  ✓ UI: HUD container utama
-  ✓ UI: HP bar
-  ✗ UI: Minimap
-    ↳ "#minimap-canvas" tidak terlihat — elemen "Minimap" hilang atau selectornya salah
-
-  Babylon.js Engine
-  ✓ Babylon.js Engine berjalan
-  ✗ window.game tersedia
-    ↳ window.game tidak ditemukan — agent perlu expose object ini ke window
-
-  Performance
-  ⚠ FPS minimal 30
-    ↳ FPS rata-rata 24, di bawah target 30 — optimasi rendering atau kurangi draw calls
-
-──────────────────────────────────────────────────────────
-  ✓ 4 sesuai blueprint   ✗ 2 tidak sesuai   ⚠ 1 peringatan
-
-  GAME BELUM SESUAI BLUEPRINT — 2 item perlu diperbaiki
-──────────────────────────────────────────────────────────
-```
-
-Agent baca output → langsung tahu persis apa yang perlu diperbaiki → fix → run lagi.
-
----
-
-## Contoh Output Lengkap
-
-```
-────────────────────────────────────────────────────────────
-[GhostPlay] Forge Frenzy — Full Flow Test
-  URL: http://localhost:5173
-  Viewport: 390x844
-────────────────────────────────────────────────────────────
-[00:01.234] ℹ Halaman dimuat: http://localhost:5173
-[00:01.300] ✓ Boot overlay muncul (45ms)
-[00:02.800] ✓ Boot overlay hilang (1500ms)
-[00:03.100] ✓ Input nickname muncul (280ms)
-[00:03.500] ✓ Ketik nickname (380ms)
-[00:03.600] ✓ Tap tombol LANJUT (90ms)
-[00:04.200] ✓ Pilih hero BRIX (120ms)
-[00:07.800] ✓ Canvas WebGL ada (30ms)
-[00:07.810] ✓ HUD container ada (12ms)
-[00:07.820] ✓ HP bar ada (8ms)
-[00:07.830] ✓ Ammo display ada (9ms)
-[00:07.840] ✗ Minimap canvas ada   ← elemen #minimap-canvas tidak ditemukan
-[00:09.900] ⚠ FPS rata-rata 24 (min 18) — batas minimal 30
-[00:10.100] ✗ Tidak ada JS error
-         BotAI.ts:47 — Cannot read properties of undefined (reading 'pos')
-         at BotAISystem.updateBot (BotAI.ts:47:18)
-────────────────────────────────────────────────────────────
-Results:
-  ✓ Passed   11
-  ⚠ Warned   1
-  ✗ Failed   2
-  ⏱ Total    10234ms
-────────────────────────────────────────────────────────────
-  ADA 2 TEST GAGAL ✗
 ```
 
 ---
@@ -231,37 +244,43 @@ Results:
 | `check-no-errors` | — | Pastikan tidak ada JS error |
 | `check-canvas-babylon` | `checks` | Inspect Babylon.js engine & WebGL canvas |
 | `check-blueprint` | `blueprint` | Validasi game terhadap blueprint spec |
+| `check-assets` | `assets` | Validasi asset file 3D/tekstur/audio + scene runtime |
 | `screenshot` | `label` | Ambil screenshot |
 | `log` | `message` | Tulis pesan ke log |
 
 ---
 
-## Tulis Scenario Sendiri
+## Struktur File
 
-```typescript
-// scenarios/game-saya.ts
-import { defineScenario } from '../src/index';
-
-export default defineScenario({
-  name: 'Game Saya — Basic Test',
-  url:  'http://localhost:5173',
-  steps: [
-    { type: 'wait-for',          selector: '#main-menu', timeout: 5000, label: 'Menu muncul' },
-    { type: 'tap-text',          text: 'MAIN SEKARANG', label: 'Mulai' },
-    { type: 'wait',              ms: 2000 },
-    { type: 'check-canvas-babylon', checks: { requireEngine: true, minFps: 30 }, label: 'Engine OK' },
-    { type: 'check-blueprint',   blueprint: 'blueprints/game-saya.blueprint.json', label: 'Sesuai blueprint' },
-    { type: 'check-no-errors',   label: 'Tidak ada error' },
-    { type: 'screenshot',        label: 'final_state' },
-  ],
-});
+```
+GhostPlay/
+├── src/
+│   ├── core/
+│   │   ├── GhostPlay.ts         # Orkestrasi utama
+│   │   ├── AssetChecker.ts      # Validasi asset file + GLB/GLTF parser
+│   │   ├── BabylonChecker.ts    # Inspector Babylon.js engine & WebGL
+│   │   ├── BlueprintChecker.ts  # Validasi game vs blueprint spec
+│   │   ├── FileWatcher.ts       # Watch mode (Replit workflow integration)
+│   │   ├── InputSimulator.ts    # Simulasi tap/swipe/type/key
+│   │   ├── DOMChecker.ts        # Cek elemen DOM
+│   │   ├── ErrorCollector.ts    # Tangkap JS error real-time
+│   │   ├── PerfMonitor.ts       # Monitor FPS via rAF
+│   │   └── Reporter.ts          # Format output terminal
+│   ├── cli.ts                   # CLI entrypoint (run + watch command)
+│   ├── index.ts                 # Public exports
+│   └── types.ts                 # Semua type definitions
+├── scenarios/
+│   ├── forge-frenzy.ts          # Scenario lengkap Forge Frenzy
+│   └── example.json             # Contoh scenario JSON
+└── blueprints/
+    └── forge-frenzy.blueprint.json  # Blueprint + asset spec Forge Frenzy
 ```
 
 ---
 
 ## Kompatibel dengan Engine Apapun
 
-GhostPlay tidak terikat ke Babylon.js, Three.js, atau engine tertentu. `check-canvas-babylon` hanyalah step opsional untuk project yang pakai Babylon.js. Selama game jalan di browser, GhostPlay bisa test.
+GhostPlay tidak terikat ke Babylon.js, Three.js, atau engine tertentu. `check-canvas-babylon` hanyalah step opsional untuk project Babylon.js. `check-assets` bekerja untuk format GLB/GLTF/OBJ apapun. Selama game jalan di browser, GhostPlay bisa test.
 
 ---
 

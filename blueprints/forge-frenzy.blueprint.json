@@ -1,10 +1,10 @@
 {
-  "_comment": "Blueprint ini mendefinisikan SEMUA yang harus ada di game Forge Frenzy sesuai desain asli.",
+  "_comment": "Blueprint ini mendefinisikan SEMUA yang harus ada di game Forge Frenzy sesuai desain asli — UI, karakter, map, engine, performa, dan asset file.",
   "_usage": "Gunakan step { type: 'check-blueprint', blueprint: 'blueprints/forge-frenzy.blueprint.json' } di scenario.",
 
   "name": "Forge Frenzy — Full Blueprint",
   "version": "1.0",
-  "description": "Spec lengkap: UI, karakter, map, engine, dan performa",
+  "description": "Spec lengkap: UI, karakter, map, engine, performa, dan semua asset file 3D/tekstur/audio",
 
   "ui": {
     "elements": [
@@ -51,5 +51,95 @@
   "performance": {
     "minFps":    30,
     "maxLoadMs": 5000
+  },
+
+  "assets": {
+    "rootDir": ".",
+
+    "models": [
+      {
+        "file":               "public/models/brix.glb",
+        "label":              "Karakter BRIX",
+        "expectedMeshes":     ["Brix_Body", "Brix_Head", "Brix_Gun", "Brix_LArm", "Brix_RArm"],
+        "expectedAnimations": ["idle", "run", "attack", "death", "jump"],
+        "expectedMaterials":  ["BrixSkin", "BrixArmor", "BrixGun"],
+        "requireRig":         true,
+        "minPolyCount":       8000,
+        "inScene":            true,
+        "sceneNamePattern":   "brix"
+      },
+      {
+        "file":               "public/models/map_forge.glb",
+        "label":              "Map Forge Frenzy",
+        "expectedMeshes":     ["Ground", "Walls", "ForgeZone", "SpawnPlatform"],
+        "expectedMaterials":  ["GroundMat", "WallMat", "ForgeMat"],
+        "minPolyCount":       20000,
+        "inScene":            true,
+        "sceneNamePattern":   "ground"
+      },
+      {
+        "file":               "public/models/loot_crate.glb",
+        "label":              "Loot Crate",
+        "expectedMeshes":     ["Crate_Body", "Crate_Lid"],
+        "expectedAnimations": ["open"],
+        "inScene":            true,
+        "sceneNamePattern":   "crate"
+      },
+      {
+        "file":               "public/models/weapon_rifle.glb",
+        "label":              "Senjata Rifle",
+        "expectedMeshes":     ["Rifle_Body", "Rifle_Barrel", "Rifle_Stock"],
+        "expectedMaterials":  ["RifleMat"],
+        "minPolyCount":       2000
+      },
+      {
+        "file":               "public/models/weapon_shotgun.glb",
+        "label":              "Senjata Shotgun",
+        "expectedMeshes":     ["Shotgun_Body", "Shotgun_Barrel"],
+        "minPolyCount":       1500
+      }
+    ],
+
+    "textures": [
+      {
+        "file":     "public/textures/brix_diffuse.png",
+        "label":    "Tekstur BRIX (diffuse)",
+        "minWidth": 512,
+        "minHeight": 512
+      },
+      {
+        "file":     "public/textures/brix_normal.png",
+        "label":    "Tekstur BRIX (normal map)",
+        "minWidth": 512
+      },
+      {
+        "file":     "public/textures/map_ground.jpg",
+        "label":    "Tekstur tanah map",
+        "minWidth": 1024
+      },
+      {
+        "file":     "public/textures/map_wall.jpg",
+        "label":    "Tekstur dinding map",
+        "minWidth": 512
+      },
+      {
+        "file":     "public/textures/ui_hud.png",
+        "label":    "Sprite sheet HUD"
+      },
+      {
+        "file":     "public/textures/ui_icons.png",
+        "label":    "Icon sheet UI"
+      }
+    ],
+
+    "audio": [
+      { "file": "public/audio/bgm_forge.mp3",        "label": "BGM Forge Frenzy" },
+      { "file": "public/audio/sfx_shoot.mp3",        "label": "SFX tembak" },
+      { "file": "public/audio/sfx_reload.mp3",       "label": "SFX reload" },
+      { "file": "public/audio/sfx_footstep.mp3",     "label": "SFX langkah kaki" },
+      { "file": "public/audio/sfx_crate_open.mp3",   "label": "SFX buka loot crate" },
+      { "file": "public/audio/sfx_death.mp3",        "label": "SFX mati" },
+      { "file": "public/audio/sfx_ult_activate.mp3", "label": "SFX aktifkan ultimate" }
+    ]
   }
 }

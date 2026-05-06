@@ -8,6 +8,7 @@ import { ErrorCollector } from './ErrorCollector.js';
 import { PerfMonitor } from './PerfMonitor.js';
 import { BabylonChecker } from './BabylonChecker.js';
 import { BlueprintChecker } from './BlueprintChecker.js';
+import { AssetChecker } from './AssetChecker.js';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -49,6 +50,7 @@ export class GhostPlay {
     const dom            = new DOMChecker(this.page, this.reporter);
     const babylon        = new BabylonChecker(this.page, this.reporter);
     const blueprint      = new BlueprintChecker(this.page, this.reporter);
+    const assets         = new AssetChecker(this.page, this.reporter);
 
     await errorCollector.inject();
     await perfMonitor.inject();
@@ -63,7 +65,9 @@ export class GhostPlay {
     const results: StepResult[] = [];
 
     for (const step of scenario.steps) {
-      const result = await this.executeStep(step, input, dom, perfMonitor, errorCollector, babylon, blueprint);
+      const result = await this.executeStep(
+        step, input, dom, perfMonitor, errorCollector, babylon, blueprint, assets
+      );
       results.push(result);
       this.reporter.step(result);
       if (result.status === 'fail' && scenario.stopOnFail === true) {
@@ -86,6 +90,7 @@ export class GhostPlay {
     errors: ErrorCollector,
     babylon: BabylonChecker,
     blueprint: BlueprintChecker,
+    assets: AssetChecker,
   ): Promise<StepResult> {
     const t0 = Date.now();
     const make = (status: StepResult['status'], message: string, extra?: Partial<StepResult>): StepResult => ({
@@ -185,6 +190,21 @@ export class GhostPlay {
           const report = await blueprint.validate(step.blueprint);
           const status = report.failed > 0 ? 'fail' : report.warned > 0 ? 'warn' : 'ok';
           const message = `Blueprint "${report.blueprintName}": ${report.passed} sesuai, ${report.failed} gagal, ${report.warned} peringatan`;
+          return make(status, message, { detail: report });
+        }
+
+        case 'check-assets': {
+          // Bisa inline spec object atau path ke JSON file
+          let spec = step.assets;
+          if (typeof spec === 'string') {
+            const { default: fs2 } = await import('fs');
+            const { default: path2 } = await import('path');
+            const absPath = path2.resolve(process.cwd(), spec);
+            spec = JSON.parse(fs2.readFileSync(absPath, 'utf-8'));
+          }
+          const report = await assets.validate(spec as import('../types.js').AssetsSpec);
+          const status = report.failed > 0 ? 'fail' : report.warned > 0 ? 'warn' : 'ok';
+          const message = `Asset check: ${report.passed} sesuai, ${report.failed} hilang/salah, ${report.warned} peringatan`;
           return make(status, message, { detail: report });
         }
 

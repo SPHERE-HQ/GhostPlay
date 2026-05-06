@@ -23,6 +23,7 @@ export type StepType =
   | 'check-no-errors'
   | 'check-canvas-babylon'
   | 'check-blueprint'
+  | 'check-assets'
   | 'screenshot'
   | 'log';
 
@@ -41,10 +42,11 @@ export type Step =
   | { type: 'check-no-errors';      label?: string }
   | { type: 'check-canvas-babylon'; checks?: BabylonChecks;  label?: string }
   | { type: 'check-blueprint';      blueprint: Blueprint | string; label?: string }
+  | { type: 'check-assets';         assets: AssetsSpec | string;  label?: string }
   | { type: 'screenshot';           label: string }
   | { type: 'log';                  message: string };
 
-// ─── Babylon.js Check Config ────────────────────────────────────────────────
+// ─── Babylon.js Check Config ─────────────────────────────────────────────────
 
 export interface BabylonChecks {
   minFps?: number;
@@ -53,10 +55,59 @@ export interface BabylonChecks {
   requireScene?: boolean;
   requireEngine?: boolean;
   requireNotDisposed?: boolean;
-  customObjects?: string[];       // window properties yang harus ada, misal ['game', 'playerController']
+  customObjects?: string[];
 }
 
-// ─── Blueprint Format ────────────────────────────────────────────────────────
+// ─── Asset Spec ───────────────────────────────────────────────────────────────
+
+export interface AssetsSpec {
+  rootDir?: string;              // root direktori project, default process.cwd()
+  models?:  AssetModelSpec[];
+  textures?: AssetTextureSpec[];
+  audio?:   AssetAudioSpec[];
+}
+
+export interface AssetModelSpec {
+  file: string;                  // path relatif dari rootDir, misal "public/models/brix.glb"
+  label: string;                 // nama deskriptif, misal "Karakter BRIX"
+  expectedMeshes?: string[];     // nama mesh yang harus ada di dalam file
+  expectedAnimations?: string[]; // nama animasi yang harus ada
+  expectedMaterials?: string[];  // nama material yang harus ada
+  requireRig?: boolean;          // harus punya skeleton/armature
+  minPolyCount?: number;         // minimum triangle count
+  inScene?: boolean;             // harus ter-load di Babylon.js scene saat runtime
+  sceneNamePattern?: string;     // pattern nama mesh di scene (substring match)
+}
+
+export interface AssetTextureSpec {
+  file: string;
+  label: string;
+  minWidth?: number;
+  minHeight?: number;
+  inScene?: boolean;
+}
+
+export interface AssetAudioSpec {
+  file: string;
+  label: string;
+}
+
+export interface AssetRequirement {
+  label: string;
+  category: 'model' | 'texture' | 'audio' | 'scene';
+  status: 'pass' | 'fail' | 'warn';
+  message: string;
+  file?: string;
+}
+
+export interface AssetCheckReport {
+  passed: number;
+  failed: number;
+  warned: number;
+  requirements: AssetRequirement[];
+}
+
+// ─── Blueprint Format ─────────────────────────────────────────────────────────
 
 export interface Blueprint {
   name: string;
@@ -85,16 +136,18 @@ export interface Blueprint {
     checkScene?: boolean;
     minMeshCount?: number;
     minDrawCalls?: number;
-    requireGlobals?: string[];    // misal ['BABYLON', 'engine', 'scene']
+    requireGlobals?: string[];
   };
+
+  assets?: AssetsSpec;           // asset spec bisa juga ditaruh langsung di blueprint
 }
 
 export interface BlueprintElement {
   selector: string;
   label: string;
-  required?: boolean;             // default true
-  text?: string;                  // isi teks yang harus ada
-  visible?: boolean;              // harus visible (default true)
+  required?: boolean;
+  text?: string;
+  visible?: boolean;
 }
 
 export interface BlueprintLandmark {
@@ -110,7 +163,7 @@ export interface BlueprintCharacter {
   hudAmmo?: string;
 }
 
-// ─── Result Types ────────────────────────────────────────────────────────────
+// ─── Result Types ─────────────────────────────────────────────────────────────
 
 export interface Scenario {
   name: string;
@@ -129,7 +182,7 @@ export interface StepResult {
   durationMs: number;
   screenshotPath?: string;
   error?: string;
-  detail?: BlueprintReport | BabylonReport;
+  detail?: BlueprintReport | BabylonReport | AssetCheckReport;
 }
 
 export interface CapturedError {
@@ -152,7 +205,7 @@ export interface TestReport {
   success: boolean;
 }
 
-// ─── Blueprint Report ────────────────────────────────────────────────────────
+// ─── Blueprint Report ─────────────────────────────────────────────────────────
 
 export interface BlueprintRequirement {
   label: string;
@@ -169,7 +222,7 @@ export interface BlueprintReport {
   requirements: BlueprintRequirement[];
 }
 
-// ─── Babylon Report ──────────────────────────────────────────────────────────
+// ─── Babylon Report ───────────────────────────────────────────────────────────
 
 export interface BabylonReport {
   engineFound: boolean;
