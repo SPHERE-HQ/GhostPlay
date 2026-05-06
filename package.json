@@ -1,0 +1,25 @@
+{
+  "name": "ghostplay",
+  "version": "0.1.0",
+  "description": "Game test runner untuk AI agent — simulate input, cek UI/HUD, monitor error & FPS",
+  "author": "SPHERE-HQ",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "ghostplay": "./dist/cli.js"
+  },
+  "scripts": {
+    "build":   "tsc",
+    "dev":     "tsx src/cli.ts",
+    "run:ff":  "tsx src/cli.ts run scenarios/forge-frenzy.ts",
+    "install-browsers": "playwright install chromium"
+  },
+  "dependencies": {
+    "playwright": "^1.44.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "tsx":        "^4.11.0",
+    "@types/node": "^20.0.0"
+  }
+}
